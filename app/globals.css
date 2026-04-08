@@ -25,9 +25,9 @@
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
     
-    /* Club dynamic colors - overridden per club */
-    --club-primary: #000000;
-    --club-secondary: #ffffff;
+    /* Club dynamic colors - defaults */
+    --club-primary: #1e40af;
+    --club-secondary: #3b82f6;
   }
 
   .dark {
@@ -64,7 +64,7 @@
 
 @layer components {
   .club-gradient {
-    background: linear-gradient(135deg, var(--club-primary) 0%, var(--club-secondary) 100%);
+    background: linear-gradient(135deg, var(--club-primary), var(--club-secondary));
   }
   
   .club-bg-primary {
@@ -86,32 +86,9 @@
   .club-border-primary {
     border-color: var(--club-primary);
   }
-  
-  .product-card {
-    @apply rounded-lg overflow-hidden bg-card shadow-sm hover:shadow-md transition-shadow duration-200;
-  }
-  
-  .btn-club {
-    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
-    background-color: var(--club-primary);
-    color: var(--club-secondary);
-  }
-  
-  .btn-club:hover {
-    opacity: 0.9;
-  }
-  
-  .input-club:focus {
-    border-color: var(--club-primary);
-    box-shadow: 0 0 0 2px rgba(var(--club-primary), 0.2);
-  }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-  
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -121,51 +98,23 @@
     display: none;
   }
   
-  .animate-in {
-    animation: fade-in 0.2s ease-out;
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
   }
   
-  .animate-out {
-    animation: fade-out 0.2s ease-out;
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
   }
-}
-
-/* Custom scrollbar for cart drawer */
-.cart-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.cart-scrollbar::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
-  border-radius: 3px;
-}
-
-.cart-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 3px;
-}
-
-.cart-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
-}
-
-/* Loading skeleton animation */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    hsl(var(--muted)) 25%,
-    hsl(var(--muted-foreground) / 0.1) 50%,
-    hsl(var(--muted)) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
 }
