@@ -1,264 +1,282 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+
+// ==========================================
+// Tailwind Utilities
+// ==========================================
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(
-  amount: number,
-  currency: string = "EUR"
-): string {
+// ==========================================
+// Formatting Utilities
+// ==========================================
+
+export function formatCurrency(amount: number, currency = "EUR"): string {
   return new Intl.NumberFormat("es-ES", {
     style: "currency",
     currency,
   }).format(amount);
 }
 
-export function formatDate(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "d 'de' MMMM 'de' yyyy", { locale: es });
+export function formatNumber(num: number): string {
+  return new Intl.NumberFormat("es-ES").format(num);
 }
 
-export function formatDateShort(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "dd/MM/yyyy", { locale: es });
+export function formatPercentage(value: number): string {
+  return new Intl.NumberFormat("es-ES", {
+    style: "percent",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value / 100);
+}
+
+// ==========================================
+// Date Utilities
+// ==========================================
+
+export function formatDate(date: string | Date, formatStr = "dd/MM/yyyy"): string {
+  const parsedDate = typeof date === "string" ? parseISO(date) : date;
+  return format(parsedDate, formatStr, { locale: es });
 }
 
 export function formatDateTime(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: es });
+  const parsedDate = typeof date === "string" ? parseISO(date) : date;
+  return format(parsedDate, "dd/MM/yyyy HH:mm", { locale: es });
 }
 
 export function formatRelativeTime(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return formatDistanceToNow(d, { addSuffix: true, locale: es });
+  const parsedDate = typeof date === "string" ? parseISO(date) : date;
+  return formatDistanceToNow(parsedDate, { addSuffix: true, locale: es });
 }
 
-export function generateSlug(text: string): string {
+export function formatMonth(date: string | Date): string {
+  const parsedDate = typeof date === "string" ? parseISO(date) : date;
+  return format(parsedDate, "MMMM yyyy", { locale: es });
+}
+
+// ==========================================
+// String Utilities
+// ==========================================
+
+export function slugify(text: string): string {
   return text
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
+    .replace(/(^-|-$)/g, "");
 }
 
-export function generateSKU(
-  productName: string,
-  talla?: string,
-  color?: string
-): string {
-  const namePart = productName.substring(0, 3).toUpperCase();
-  const tallaPart = talla ? talla.substring(0, 2).toUpperCase() : "XX";
-  const colorPart = color ? color.substring(0, 2).toUpperCase() : "XX";
-  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${namePart}-${tallaPart}-${colorPart}-${randomPart}`;
+export function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 }
 
-export function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength).trim() + "...";
+export function truncate(text: string, length: number): string {
+  if (text.length <= length) return text;
+  return text.slice(0, length) + "...";
 }
 
-export function calculateComision(
-  subtotal: number,
-  comisionPorcentaje: number
-): number {
-  return Math.round(subtotal * (comisionPorcentaje / 100) * 100) / 100;
+export function generateSKU(productName: string, talla?: string, color?: string): string {
+  const base = slugify(productName).slice(0, 10).toUpperCase();
+  const parts = [base];
+  
+  if (talla) parts.push(talla.toUpperCase());
+  if (color) parts.push(color.slice(0, 3).toUpperCase());
+  
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  parts.push(random);
+  
+  return parts.join("-");
 }
 
-export function calculatePagoClub(subtotal: number, comision: number): number {
-  return Math.round((subtotal - comision) * 100) / 100;
-}
+// ==========================================
+// Validation Utilities
+// ==========================================
 
-export function validateEmail(email: string): boolean {
+export function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
 
-export function validatePhone(phone: string): boolean {
-  const phoneRegex = /^[+]?[\d\s-]{9,15}$/;
-  return phoneRegex.test(phone);
+export function isValidPhone(phone: string): boolean {
+  const phoneRegex = /^(\+34)?[6-9]\d{8}$/;
+  return phoneRegex.test(phone.replace(/\s/g, ""));
 }
 
-export function validatePostalCode(code: string, country: string = "ES"): boolean {
-  const patterns: Record<string, RegExp> = {
-    ES: /^[0-9]{5}$/,
-    AR: /^[A-Z][0-9]{4}[A-Z]{3}$/i,
-    MX: /^[0-9]{5}$/,
-  };
-  const pattern = patterns[country] || /^[A-Z0-9]{3,10}$/i;
-  return pattern.test(code);
+export function isValidPostalCode(code: string): boolean {
+  const postalRegex = /^\d{5}$/;
+  return postalRegex.test(code);
 }
 
-export function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((word) => word.charAt(0))
-    .join("")
-    .toUpperCase()
-    .substring(0, 2);
-}
+// ==========================================
+// Color Utilities
+// ==========================================
 
-export function hexToHSL(hex: string): string {
+export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return "0 0% 0%";
-
-  let r = parseInt(result[1], 16) / 255;
-  let g = parseInt(result[2], 16) / 255;
-  let b = parseInt(result[3], 16) / 255;
-
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0;
-  let s = 0;
-  const l = (max + min) / 2;
-
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r:
-        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-        break;
-      case g:
-        h = ((b - r) / d + 2) / 6;
-        break;
-      case b:
-        h = ((r - g) / d + 4) / 6;
-        break;
-    }
-  }
-
-  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null;
 }
 
 export function getContrastColor(hexColor: string): string {
-  const hex = hexColor.replace("#", "");
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "#000000" : "#FFFFFF";
+  const rgb = hexToRgb(hexColor);
+  if (!rgb) return "#000000";
+  
+  const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+  return brightness > 128 ? "#000000" : "#ffffff";
 }
 
-export function debounce<T extends (...args: unknown[]) => unknown>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
+export function adjustColorBrightness(hex: string, percent: number): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  
+  const adjust = (value: number) => {
+    const adjusted = Math.round(value + (255 - value) * (percent / 100));
+    return Math.min(255, Math.max(0, adjusted));
   };
+  
+  const r = adjust(rgb.r).toString(16).padStart(2, "0");
+  const g = adjust(rgb.g).toString(16).padStart(2, "0");
+  const b = adjust(rgb.b).toString(16).padStart(2, "0");
+  
+  return `#${r}${g}${b}`;
 }
 
-export function throttle<T extends (...args: unknown[]) => unknown>(
-  func: T,
-  limit: number
-): (...args: Parameters<T>) => void {
-  let inThrottle: boolean;
-  return (...args: Parameters<T>) => {
-    if (!inThrottle) {
-      func(...args);
-      inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
-    }
-  };
+// ==========================================
+// Cart Utilities
+// ==========================================
+
+export function calculateCartSubtotal(
+  items: Array<{ precio_unitario: number; cantidad: number }>
+): number {
+  return items.reduce((total, item) => total + item.precio_unitario * item.cantidad, 0);
 }
 
-export function groupBy<T>(
-  array: T[],
-  key: keyof T
-): Record<string, T[]> {
-  return array.reduce((groups, item) => {
-    const groupKey = String(item[key]);
-    if (!groups[groupKey]) {
-      groups[groupKey] = [];
-    }
-    groups[groupKey].push(item);
-    return groups;
-  }, {} as Record<string, T[]>);
+export function calculateShippingCost(subtotal: number, itemCount: number): number {
+  if (subtotal >= 50) return 0; // Envío gratis a partir de 50€
+  if (itemCount <= 2) return 4.95;
+  return 6.95;
 }
 
-export function sortBy<T>(
-  array: T[],
-  key: keyof T,
-  direction: "asc" | "desc" = "asc"
-): T[] {
-  return [...array].sort((a, b) => {
-    const valueA = a[key];
-    const valueB = b[key];
-    
-    if (valueA < valueB) return direction === "asc" ? -1 : 1;
-    if (valueA > valueB) return direction === "asc" ? 1 : -1;
-    return 0;
-  });
+export function calculateCommission(total: number, commissionPercent: number): number {
+  return Math.round((total * commissionPercent / 100) * 100) / 100;
 }
 
-export function uniqueBy<T>(array: T[], key: keyof T): T[] {
-  const seen = new Set();
-  return array.filter((item) => {
-    const value = item[key];
-    if (seen.has(value)) return false;
-    seen.add(value);
-    return true;
-  });
+// ==========================================
+// URL Utilities
+// ==========================================
+
+export function getBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 }
 
-export async function sleep(ms: number): Promise<void> {
+export function buildUrl(path: string, params?: Record<string, string>): string {
+  const url = new URL(path, getBaseUrl());
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      url.searchParams.set(key, value);
+    });
+  }
+  return url.toString();
+}
+
+// ==========================================
+// Storage Utilities
+// ==========================================
+
+export function getLocalStorage<T>(key: string, defaultValue: T): T {
+  if (typeof window === "undefined") return defaultValue;
+  
+  try {
+    const item = window.localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error(`Error reading localStorage key "${key}":`, error);
+    return defaultValue;
+  }
+}
+
+export function setLocalStorage<T>(key: string, value: T): void {
+  if (typeof window === "undefined") return;
+  
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Error setting localStorage key "${key}":`, error);
+  }
+}
+
+export function removeLocalStorage(key: string): void {
+  if (typeof window === "undefined") return;
+  
+  try {
+    window.localStorage.removeItem(key);
+  } catch (error) {
+    console.error(`Error removing localStorage key "${key}":`, error);
+  }
+}
+
+// ==========================================
+// Error Utilities
+// ==========================================
+
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Ha ocurrido un error inesperado";
+}
+
+// ==========================================
+// Async Utilities
+// ==========================================
+
+export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function isServer(): boolean {
-  return typeof window === "undefined";
-}
-
-export function isBrowser(): boolean {
-  return typeof window !== "undefined";
-}
-
-export function copyToClipboard(text: string): Promise<void> {
-  if (navigator.clipboard) {
-    return navigator.clipboard.writeText(text);
+export async function retry<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 3,
+  delay = 1000
+): Promise<T> {
+  let lastError: unknown;
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxAttempts) {
+        await sleep(delay * attempt);
+      }
+    }
   }
   
-  const textArea = document.createElement("textarea");
-  textArea.value = text;
-  document.body.appendChild(textArea);
-  textArea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textArea);
-  return Promise.resolve();
+  throw lastError;
 }
 
-export function downloadFile(url: string, filename: string): void {
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+// ==========================================
+// Debug Utilities
+// ==========================================
+
+export function isDevelopment(): boolean {
+  return process.env.NODE_ENV === "development";
 }
 
-export function parseQueryParams(search: string): Record<string, string> {
-  const params = new URLSearchParams(search);
-  const result: Record<string, string> = {};
-  params.forEach((value, key) => {
-    result[key] = value;
-  });
-  return result;
-}
-
-export function buildQueryString(params: Record<string, unknown>): string {
-  const searchParams = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      searchParams.append(key, String(value));
-    }
-  });
-  return searchParams.toString();
+export function debugLog(...args: unknown[]): void {
+  if (isDevelopment()) {
+    console.log("[DEBUG]", ...args);
+  }
 }
