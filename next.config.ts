@@ -1,12 +1,11 @@
-import type { NextConfig } from 'next'
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '*.supabase.co',
-        pathname: '/storage/v1/object/public/**',
+        hostname: '**.supabase.co',
       },
       {
         protocol: 'https',
@@ -19,6 +18,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;
