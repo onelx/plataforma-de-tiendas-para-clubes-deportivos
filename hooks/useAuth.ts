@@ -1,7 +1,9 @@
+"use client";
+
 import { useState, useEffect, useCallback } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { User, Session } from '@supabase/supabase-js';
-import { UsuarioClub } from '@/types';
+import type { User, Session } from '@supabase/supabase-js';
+import type { UsuarioClub } from '@/types';
 
 interface UseAuthReturn {
   user: User | null;
@@ -9,11 +11,9 @@ interface UseAuthReturn {
   usuarioClub: UsuarioClub | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, clubId: string) => Promise<void>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: Error | null }>;
-  updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
   refetchUsuarioClub: () => Promise<void>;
 }
 
@@ -29,10 +29,7 @@ export function useAuth(): UseAuthReturn {
     try {
       const { data, error } = await supabase
         .from('usuarios_club')
-        .select(`
-          *,
-          club:clubs(*)
-        `)
+        .select('*')
         .eq('auth_user_id', userId)
         .single();
 
@@ -42,158 +39,115 @@ export function useAuth(): UseAuthReturn {
         return;
       }
 
-      if (data) {
-        setUsuarioClub(data as unknown as UsuarioClub);
-      }
-    } catch (err) {
-      console.error('Error in fetchUsuarioClub:', err);
+      setUsuarioClub(data);
+    } catch (error) {
+      console.error('Error in fetchUsuarioClub:', error);
       setUsuarioClub(null);
     }
   }, [supabase]);
 
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-
-        if (currentSession?.user) {
-          await fetchUsuarioClub(currentSession.user.id);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-      } finally {
-        setIsLoading(false);
+    // Obtener sesión inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUsuarioClub(session.user.id);
+      } else {
+        setUsuarioClub(null);
       }
-    };
+      
+      setIsLoading(false);
+    });
 
-    initAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-
-        if (newSession?.user) {
-          await fetchUsuarioClub(newSession.user.id);
-        } else {
-          setUsuarioClub(null);
-        }
-
-        setIsLoading(false);
+    // Escuchar cambios de auth
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUsuarioClub(session.user.id);
+      } else {
+        setUsuarioClub(null);
       }
-    );
+    });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [supabase, fetchUsuarioClub]);
 
-  const signIn = useCallback(
-    async (email: string, password: string) => {
-      try {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          return { error };
-        }
-
-        return { error: null };
-      } catch (err) {
-        return {
-          error: err instanceof Error ? err : new Error('Error al iniciar sesión'),
-        };
-      }
-    },
-    [supabase]
-  );
-
-  const signUp = useCallback(
-    async (email: string, password: string) => {
-      try {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
-
-        if (error) {
-          return { error };
-        }
-
-        return { error: null };
-      } catch (err) {
-        return {
-          error: err instanceof Error ? err : new Error('Error al registrarse'),
-        };
-      }
-    },
-    [supabase]
-  );
-
-  const signOut = useCallback(async () => {
+  const signIn = async (email: string, password: string) => {
+    setIsLoading(true);
     try {
-      await supabase.auth.signOut();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        await fetchUsuarioClub(data.user.id);
+      }
+    } catch (error) {
+      console.error('Error signing in:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUp = async (email: string, password: string, clubId: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            club_id: clubId,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      // El trigger de la DB debería crear automáticamente el registro en usuarios_club
+      if (data.user) {
+        await fetchUsuarioClub(data.user.id);
+      }
+    } catch (error) {
+      console.error('Error signing up:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
+      setUser(null);
+      setSession(null);
       setUsuarioClub(null);
     } catch (error) {
       console.error('Error signing out:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-  }, [supabase]);
+  };
 
-  const resetPassword = useCallback(
-    async (email: string) => {
-      try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/reset-password`,
-        });
-
-        if (error) {
-          return { error };
-        }
-
-        return { error: null };
-      } catch (err) {
-        return {
-          error: err instanceof Error ? err : new Error('Error al resetear contraseña'),
-        };
-      }
-    },
-    [supabase]
-  );
-
-  const updatePassword = useCallback(
-    async (newPassword: string) => {
-      try {
-        const { error } = await supabase.auth.updateUser({
-          password: newPassword,
-        });
-
-        if (error) {
-          return { error };
-        }
-
-        return { error: null };
-      } catch (err) {
-        return {
-          error: err instanceof Error ? err : new Error('Error al actualizar contraseña'),
-        };
-      }
-    },
-    [supabase]
-  );
-
-  const refetchUsuarioClub = useCallback(async () => {
+  const refetchUsuarioClub = async () => {
     if (user) {
       await fetchUsuarioClub(user.id);
     }
-  }, [user, fetchUsuarioClub]);
+  };
 
   return {
     user,
@@ -204,8 +158,6 @@ export function useAuth(): UseAuthReturn {
     signIn,
     signUp,
     signOut,
-    resetPassword,
-    updatePassword,
     refetchUsuarioClub,
   };
 }
