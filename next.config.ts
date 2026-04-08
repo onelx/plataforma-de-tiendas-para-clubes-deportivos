@@ -1,4 +1,4 @@
-import type { NextConfig } from 'next';
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   images: {
@@ -6,18 +6,19 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: '**.supabase.co',
+        pathname: '/storage/v1/object/public/**',
       },
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
+        hostname: 'placehold.co',
+      }
     ],
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: '2mb',
+      allowedOrigins: ['localhost:3000'],
     },
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig
