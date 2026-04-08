@@ -1,43 +1,66 @@
-"use client";
+import { useState, useEffect } from 'react';
+import { Club } from '@/types';
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { Club } from "@/types";
+interface UseClubReturn {
+  club: Club | null;
+  isLoading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
 
-// Hook para obtener datos del club actual
-export function useClub(slug: string) {
+export function useClub(slug: string): UseClubReturn {
   const [club, setClub] = useState<Club | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchClub() {
-      try {
-        const supabase = createClient();
-        
-        const { data, error: fetchError } = await supabase
-          .from("clubs")
-          .select("*")
-          .eq("slug", slug)
-          .eq("activo", true)
-          .single();
+  const fetchClub = async () => {
+    if (!slug) {
+      setIsLoading(false);
+      setError('No slug provided');
+      return;
+    }
 
-        if (fetchError) {
-          throw new Error("Club no encontrado");
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch(`/api/clubs/${slug}`);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Club no encontrado');
         }
-
-        setClub(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error desconocido");
-      } finally {
-        setLoading(false);
+        throw new Error('Error al cargar los datos del club');
       }
-    }
 
-    if (slug) {
-      fetchClub();
+      const data = await response.json();
+
+      if (!data.success || !data.data) {
+        throw new Error('Respuesta inválida del servidor');
+      }
+
+      setClub(data.data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError(errorMessage);
+      setClub(null);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchClub();
   }, [slug]);
 
-  return { club, loading, error };
+  const refetch = async () => {
+    await fetchClub();
+  };
+
+  return {
+    club,
+    isLoading,
+    error,
+    refetch,
+  };
 }
