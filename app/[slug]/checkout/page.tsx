@@ -15,8 +15,8 @@ export default function CheckoutPage() {
   const params = useParams();
   const router = useRouter();
   const { items, total, clearCart } = useCart();
-  const { club, loading: clubLoading } = useClub(params.club as string);
-  
+  const { club, loading: clubLoading } = useClub(params.slug as string);
+
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -31,9 +31,9 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (items.length === 0 && !clubLoading) {
-      router.push(`/${params.club}`);
+      router.push(`/${params.slug}`);
     }
-  }, [items, clubLoading, router, params.club]);
+  }, [items, clubLoading, router, params.slug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,8 +79,8 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pedido_id,
-          success_url: `${window.location.origin}/${params.club}/pedido/${pedido_id}?success=true`,
-          cancel_url: `${window.location.origin}/${params.club}/checkout`
+          success_url: `${window.location.origin}/${params.slug}/pedido/${pedido_id}?success=true`,
+          cancel_url: `${window.location.origin}/${params.slug}/checkout`
         })
       });
 
@@ -89,7 +89,7 @@ export default function CheckoutPage() {
       }
 
       const { url } = await checkoutRes.json();
-      
+
       clearCart();
       window.location.href = url;
     } catch (error) {
@@ -223,9 +223,9 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 size="lg"
                 disabled={loading}
               >
@@ -263,7 +263,7 @@ export default function CheckoutPage() {
                     </p>
                   </div>
                 ))}
-                
+
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal</span>
