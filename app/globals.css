@@ -10,7 +10,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -22,10 +22,10 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
     
-    /* Club theme variables (defaults) */
+    /* Colores dinámicos del club - se sobrescriben con JS */
     --club-primary: #1e40af;
     --club-secondary: #3b82f6;
   }
@@ -37,7 +37,7 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -49,7 +49,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --ring: 212.7 26.8% 83.9%;
   }
 }
 
@@ -57,6 +57,7 @@
   * {
     @apply border-border;
   }
+  
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -64,35 +65,103 @@
 }
 
 @layer components {
-  .club-gradient {
-    background: linear-gradient(135deg, var(--club-primary) 0%, var(--club-secondary) 100%);
+  /* Botón con colores del club */
+  .btn-club-primary {
+    background-color: var(--club-primary);
+    color: white;
+    @apply px-4 py-2 rounded-md font-medium transition-colors;
   }
   
-  .club-border {
+  .btn-club-primary:hover {
+    filter: brightness(1.1);
+  }
+  
+  .btn-club-secondary {
+    background-color: var(--club-secondary);
+    color: white;
+    @apply px-4 py-2 rounded-md font-medium transition-colors;
+  }
+  
+  .btn-club-secondary:hover {
+    filter: brightness(1.1);
+  }
+  
+  /* Borde con color del club */
+  .border-club {
     border-color: var(--club-primary);
   }
   
-  .club-text {
+  /* Texto con color del club */
+  .text-club-primary {
     color: var(--club-primary);
   }
   
-  .club-bg {
+  .text-club-secondary {
+    color: var(--club-secondary);
+  }
+  
+  /* Background con color del club */
+  .bg-club-primary {
     background-color: var(--club-primary);
   }
   
-  .club-bg-secondary {
+  .bg-club-secondary {
     background-color: var(--club-secondary);
+  }
+  
+  /* Gradiente del club */
+  .bg-club-gradient {
+    background: linear-gradient(135deg, var(--club-primary), var(--club-secondary));
   }
 }
 
 @layer utilities {
+  /* Animación de skeleton loading */
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+  
+  /* Scrollbar personalizado */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted));
+    border-radius: 3px;
+  }
+  
+  /* Hide scrollbar pero mantener scroll */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
   
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  /* Aspect ratio para imágenes de productos */
+  .aspect-product {
+    aspect-ratio: 3 / 4;
+  }
+  
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   
   .line-clamp-2 {
