@@ -34,10 +34,16 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# IDE
-.idea
-.vscode
-
 # Supabase
 /supabase/.branches
 /supabase/.temp
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
