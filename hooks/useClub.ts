@@ -1,22 +1,23 @@
+"use client";
+
 import { useState, useEffect } from 'react';
-import { Club } from '@/types';
+import type { Club } from '@/types';
 
 interface UseClubReturn {
   club: Club | null;
   isLoading: boolean;
-  error: string | null;
+  error: Error | null;
   refetch: () => Promise<void>;
 }
 
 export function useClub(slug: string): UseClubReturn {
   const [club, setClub] = useState<Club | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const fetchClub = async () => {
     if (!slug) {
       setIsLoading(false);
-      setError('No slug provided');
       return;
     }
 
@@ -25,24 +26,19 @@ export function useClub(slug: string): UseClubReturn {
       setError(null);
 
       const response = await fetch(`/api/clubs/${slug}`);
-
+      
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error('Club no encontrado');
         }
-        throw new Error('Error al cargar los datos del club');
+        throw new Error('Error al cargar el club');
       }
 
       const data = await response.json();
-
-      if (!data.success || !data.data) {
-        throw new Error('Respuesta inválida del servidor');
-      }
-
-      setClub(data.data);
+      setClub(data);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      setError(errorMessage);
+      const error = err instanceof Error ? err : new Error('Error desconocido');
+      setError(error);
       setClub(null);
     } finally {
       setIsLoading(false);
@@ -53,14 +49,10 @@ export function useClub(slug: string): UseClubReturn {
     fetchClub();
   }, [slug]);
 
-  const refetch = async () => {
-    await fetchClub();
-  };
-
   return {
     club,
     isLoading,
     error,
-    refetch,
+    refetch: fetchClub,
   };
 }
