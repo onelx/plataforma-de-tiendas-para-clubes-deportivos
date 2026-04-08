@@ -1,40 +1,25 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { Toaster } from '@/components/ui/toaster'
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
 
-const inter = Inter({ 
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-})
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: {
-    default: 'IdeaForge Club Stores',
-    template: '%s | IdeaForge',
-  },
-  description: 'Plataforma de tiendas online para clubes deportivos con productos bajo demanda',
-  keywords: ['tienda', 'club deportivo', 'merchandising', 'ropa deportiva', 'personalizado'],
-  authors: [{ name: 'IdeaForge' }],
-  openGraph: {
-    type: 'website',
-    locale: 'es_ES',
-    siteName: 'IdeaForge Club Stores',
-  },
-}
+  title: 'ClubStore Platform',
+  description: 'Plataforma de tiendas online para clubes deportivos',
+  keywords: ['clubes deportivos', 'tienda online', 'merchandising', 'fabricación bajo demanda'],
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={inter.className}>
         {children}
-        <Toaster />
       </body>
     </html>
-  )
+  );
 }
