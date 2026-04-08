@@ -2,6 +2,7 @@
 /node_modules
 /.pnp
 .pnp.js
+.yarn/install-state.gz
 
 # Testing
 /coverage
@@ -32,3 +33,16 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+Thumbs.db
