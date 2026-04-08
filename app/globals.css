@@ -24,10 +24,6 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
-    
-    /* Colores dinámicos del club - se sobrescriben con JS */
-    --club-primary: #1e40af;
-    --club-secondary: #3b82f6;
   }
 
   .dark {
@@ -57,124 +53,29 @@
   * {
     @apply border-border;
   }
-  
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-}
-
-@layer components {
-  /* Botón con colores del club */
-  .btn-club-primary {
-    background-color: var(--club-primary);
-    color: white;
-    @apply px-4 py-2 rounded-md font-medium transition-colors;
-  }
-  
-  .btn-club-primary:hover {
-    filter: brightness(1.1);
-  }
-  
-  .btn-club-secondary {
-    background-color: var(--club-secondary);
-    color: white;
-    @apply px-4 py-2 rounded-md font-medium transition-colors;
-  }
-  
-  .btn-club-secondary:hover {
-    filter: brightness(1.1);
-  }
-  
-  /* Borde con color del club */
-  .border-club {
-    border-color: var(--club-primary);
-  }
-  
-  /* Texto con color del club */
-  .text-club-primary {
-    color: var(--club-primary);
-  }
-  
-  .text-club-secondary {
-    color: var(--club-secondary);
-  }
-  
-  /* Background con color del club */
-  .bg-club-primary {
-    background-color: var(--club-primary);
-  }
-  
-  .bg-club-secondary {
-    background-color: var(--club-secondary);
-  }
-  
-  /* Gradiente del club */
-  .bg-club-gradient {
-    background: linear-gradient(135deg, var(--club-primary), var(--club-secondary));
   }
 }
 
 @layer utilities {
-  /* Animación de skeleton loading */
-  .skeleton {
-    @apply animate-pulse bg-muted rounded;
+  .club-primary {
+    background-color: var(--club-primary, hsl(var(--primary)));
   }
   
-  /* Scrollbar personalizado */
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted)) transparent;
+  .club-secondary {
+    background-color: var(--club-secondary, hsl(var(--secondary)));
   }
   
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  .text-club-primary {
+    color: var(--club-primary, hsl(var(--primary)));
   }
   
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
+  .text-club-secondary {
+    color: var(--club-secondary, hsl(var(--secondary)));
   }
   
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted));
-    border-radius: 3px;
-  }
-  
-  /* Hide scrollbar pero mantener scroll */
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  
-  /* Aspect ratio para imágenes de productos */
-  .aspect-product {
-    aspect-ratio: 3 / 4;
-  }
-  
-  /* Line clamp utilities */
-  .line-clamp-1 {
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  
-  .line-clamp-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  .border-club-primary {
+    border-color: var(--club-primary, hsl(var(--primary)));
   }
 }
