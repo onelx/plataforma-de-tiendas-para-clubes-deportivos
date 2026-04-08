@@ -1,28 +1,30 @@
-# IdeaForge Club Stores
+# ClubStore Platform
 
-Plataforma de tiendas online para clubes deportivos con producción bajo demanda.
+Plataforma de tiendas online para clubes deportivos con fabricación bajo demanda.
 
-## 🚀 Características
+## 🚀 Stack Tecnológico
 
-- **Tiendas personalizadas**: Cada club tiene su propia tienda con branding (colores, logo)
-- **Catálogo de productos**: Gestión de productos con variantes (tallas, colores)
-- **Checkout integrado**: Pagos seguros con Stripe Connect
-- **Panel de administración**: Dashboard para clubes con estadísticas y gestión de pedidos
-- **Producción bajo demanda**: Los productos se fabrican cuando se compran
+- **Frontend:** Next.js 14 (App Router) + TypeScript
+- **Styling:** Tailwind CSS + shadcn/ui
+- **Database:** Supabase PostgreSQL
+- **Auth:** Supabase Auth
+- **Payments:** Stripe + Stripe Connect
+- **Deployment:** Vercel + Supabase Cloud
 
-## 📋 Requisitos
+## 📋 Requisitos Previos
 
-- Node.js 18.17 o superior
-- Cuenta de Supabase
-- Cuenta de Stripe (con Connect habilitado)
+- Node.js 18+ instalado
+- Cuenta de Supabase (gratuita)
+- Cuenta de Stripe (modo test)
+- Git
 
-## 🛠️ Instalación
+## 🛠️ Setup Local
 
 ### 1. Clonar el repositorio
 
 ```bash
-git clone <repo-url>
-cd ideaforge-club-stores
+git clone <repository-url>
+cd clubstore-platform
 ```
 
 ### 2. Instalar dependencias
@@ -31,25 +33,45 @@ cd ideaforge-club-stores
 npm install
 ```
 
-### 3. Configurar variables de entorno
+### 3. Configurar Supabase
+
+1. Crear un proyecto en [Supabase](https://app.supabase.com)
+2. Ir a **Settings > API** y copiar:
+   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
+   - anon/public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - service_role key → `SUPABASE_SERVICE_ROLE_KEY`
+
+3. Ejecutar las migraciones de base de datos:
+   - Ir a **SQL Editor** en Supabase
+   - Ejecutar el script `supabase/migrations/001_initial_schema.sql`
+
+### 4. Configurar Stripe
+
+1. Crear cuenta en [Stripe](https://dashboard.stripe.com)
+2. Activar modo **Test**
+3. Ir a **Developers > API keys** y copiar:
+   - Publishable key → `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+   - Secret key → `STRIPE_SECRET_KEY`
+
+4. Configurar Stripe Connect:
+   - Ir a **Connect > Settings**
+   - Copiar Client ID → `STRIPE_CONNECT_CLIENT_ID`
+
+5. Configurar Webhooks:
+   - Ir a **Developers > Webhooks**
+   - Añadir endpoint: `https://tu-dominio.com/api/webhooks/stripe`
+   - Seleccionar eventos: `checkout.session.completed`, `payment_intent.succeeded`
+   - Copiar Signing secret → `STRIPE_WEBHOOK_SECRET`
+
+### 5. Variables de Entorno
+
+Copiar el archivo de ejemplo y completar con tus credenciales:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Edita `.env.local` con tus credenciales de Supabase y Stripe.
-
-### 4. Configurar Supabase
-
-1. Crea un nuevo proyecto en [Supabase](https://supabase.com)
-2. Ejecuta el script SQL de migración (ver `/supabase/migrations`)
-3. Configura las políticas RLS según el esquema
-
-### 5. Configurar Stripe
-
-1. Activa Stripe Connect en tu dashboard de Stripe
-2. Configura el webhook apuntando a `/api/webhooks/stripe`
-3. Añade los eventos: `checkout.session.completed`, `payment_intent.succeeded`
+Editar `.env.local` con tus valores reales.
 
 ### 6. Ejecutar en desarrollo
 
@@ -57,77 +79,93 @@ Edita `.env.local` con tus credenciales de Supabase y Stripe.
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000)
+Abrir [http://localhost:3000](http://localhost:3000) en el navegador.
 
-## 📁 Estructura del Proyecto
+## 🗄️ Estructura de Base de Datos
 
+El proyecto usa las siguientes tablas principales:
+
+- **clubs** - Información de clubes (nombre, logo, colores, comisión)
+- **usuarios_club** - Usuarios administradores de cada club
+- **productos** - Catálogo de productos por club
+- **variantes_producto** - Variantes (tallas/colores) de productos
+- **pedidos** - Pedidos realizados
+- **items_pedido** - Items individuales de cada pedido
+
+Ver esquema completo en `supabase/migrations/001_initial_schema.sql`
+
+## 🔐 Row Level Security (RLS)
+
+Todas las tablas tienen RLS habilitado con políticas que:
+
+- Permiten lectura pública de clubs y productos activos
+- Restringen escritura a usuarios autenticados del club correspondiente
+- Protegen datos sensibles (IDs de Stripe, comisiones)
+
+## 📱 Funcionalidades Principales
+
+### Para Clubes (B2B)
+
+- Dashboard con métricas de ventas
+- Gestión de productos con variantes
+- Seguimiento de pedidos en tiempo real
+- Configuración de branding (logo, colores)
+- Reportes de comisiones y pagos
+
+### Para Socios (B2C)
+
+- Catálogo de productos del club
+- Carrito de compras persistente
+- Checkout con Stripe
+- Seguimiento de pedido con timeline visual
+- Múltiples métodos de pago
+
+## 🚢 Despliegue a Producción
+
+### Vercel
+
+1. Conectar repositorio a Vercel
+2. Configurar variables de entorno en Vercel dashboard
+3. Deploy automático en cada push a `main`
+
+### Supabase
+
+1. El proyecto Supabase ya está en la nube
+2. Actualizar URLs en `.env` de desarrollo a producción
+3. Configurar dominio personalizado (opcional)
+
+### Stripe
+
+1. Cambiar de modo Test a Live
+2. Actualizar API keys en variables de entorno
+3. Configurar webhook con URL de producción
+
+## 🧪 Testing Webhooks Localmente
+
+Para probar webhooks de Stripe en local:
+
+```bash
+# Instalar Stripe CLI
+brew install stripe/stripe-cli/stripe
+
+# Login
+stripe login
+
+# Forward webhooks
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
-├── app/
-│   ├── (tienda)/           # Rutas públicas de tienda
-│   │   └── [slug]/         # Tienda de cada club
-│   ├── (dashboard)/        # Panel de administración
-│   │   └── club/           # Dashboard del club
-│   ├── api/                # API Routes
-│   └── layout.tsx          # Layout raíz
-├── components/
-│   ├── tienda/             # Componentes de tienda
-│   ├── dashboard/          # Componentes de dashboard
-│   └── ui/                 # Componentes shadcn/ui
-├── hooks/                  # Custom hooks
-├── lib/                    # Utilidades y configuración
-├── services/               # Lógica de negocio
-└── types/                  # Definiciones TypeScript
-```
 
-## 🔐 Autenticación
+## 📚 Recursos Adicionales
 
-- Los compradores no necesitan cuenta (checkout como invitado)
-- Los administradores de club usan Supabase Auth
-- RLS protege los datos por club
+- [Documentación de Next.js 14](https://nextjs.org/docs)
+- [Documentación de Supabase](https://supabase.com/docs)
+- [Documentación de Stripe Connect](https://stripe.com/docs/connect)
+- [shadcn/ui Components](https://ui.shadcn.com)
 
-## 💳 Flujo de Pagos
+## 🤝 Soporte
 
-1. Cliente añade productos al carrito
-2. Procede al checkout
-3. Se crea sesión de Stripe Checkout
-4. Stripe procesa el pago (Split con Connect)
-5. Webhook confirma y crea el pedido
-6. El club recibe notificación
-
-## 🚀 Deploy
-
-### Vercel (Recomendado)
-
-1. Conecta tu repo a Vercel
-2. Configura las variables de entorno
-3. Deploy automático en cada push
-
-### Variables de producción
-
-Asegúrate de:
-- Usar claves de Stripe en modo live
-- Configurar `NEXT_PUBLIC_APP_URL` con tu dominio
-- Actualizar el webhook de Stripe
-
-## 📊 Base de Datos
-
-### Tablas principales
-
-- `clubs`: Datos y configuración de cada club
-- `usuarios_club`: Relación usuarios-clubes con roles
-- `productos`: Catálogo de productos
-- `variantes_producto`: Variantes (talla, color)
-- `pedidos`: Pedidos realizados
-- `items_pedido`: Líneas de cada pedido
-
-## 🤝 Contribuir
-
-1. Fork el proyecto
-2. Crea una rama (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit (`git commit -m 'Añade nueva funcionalidad'`)
-4. Push (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
+Para issues o preguntas, crear un issue en GitHub o contactar a soporte@clubstore.com
 
 ## 📄 Licencia
 
-MIT
+Proprietary - Todos los derechos reservados
