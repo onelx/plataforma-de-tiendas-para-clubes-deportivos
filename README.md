@@ -1,236 +1,307 @@
-# ClubShop Platform
+# ClubStore Platform
 
 Plataforma de tiendas online para clubes deportivos con fabricación bajo demanda.
 
-## 🚀 Stack Tecnológico
+## Stack Tecnológico
 
-- **Frontend**: Next.js 14 (App Router) + TypeScript + Tailwind CSS + shadcn/ui
-- **Backend**: Next.js API Routes + Supabase Edge Functions
-- **Base de Datos**: Supabase PostgreSQL con Row Level Security
+- **Frontend**: Next.js 14 (App Router) + React 18
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Backend**: Next.js API Routes
+- **Database**: Supabase PostgreSQL con Row Level Security
 - **Autenticación**: Supabase Auth
-- **Pagos**: Stripe + Stripe Connect
+- **Pagos**: Stripe Connect
 - **Hosting**: Vercel + Supabase Cloud
 
-## 📋 Requisitos Previos
+## Características Principales
 
-- Node.js 18+ 
+### Para Clubes (B2B)
+- Panel de administración completo
+- Gestión de productos con variantes (tallas/colores)
+- Seguimiento de pedidos en tiempo real
+- Estadísticas de ventas y comisiones
+- Personalización de branding (logo, colores)
+
+### Para Socios (B2C)
+- Tienda online personalizada por club
+- Carrito de compras con persistencia
+- Checkout seguro con Stripe
+- Seguimiento de pedidos
+- Variantes de producto (talla/color)
+
+## Requisitos Previos
+
+- Node.js 18+
 - npm o yarn
-- Cuenta de Supabase (gratis en supabase.com)
-- Cuenta de Stripe (gratis en stripe.com)
+- Cuenta de Supabase
+- Cuenta de Stripe
 
-## 🛠️ Setup Local
+## Configuración Inicial
 
-### 1. Clonar y instalar dependencias
+### 1. Clonar el Repositorio
 
 ```bash
-git clone <repo-url>
-cd clubshop-platform
+git clone <repository-url>
+cd clubstore-platform
 npm install
 ```
 
 ### 2. Configurar Supabase
 
-1. Crear proyecto en [supabase.com](https://supabase.com)
-2. Ir a Settings > API y copiar:
-   - Project URL
-   - anon public key
-   - service_role key (⚠️ nunca exponer en frontend)
-
-3. Ejecutar el script SQL de migración (ver `/supabase/migrations/001_initial_schema.sql`):
-
-```sql
--- Ir a SQL Editor en Supabase Dashboard y ejecutar el script completo
-```
-
-4. Configurar Storage:
-   - Ir a Storage
-   - Crear bucket público llamado `productos`
-   - Permitir subida de imágenes (jpg, png, webp)
-
-5. Configurar políticas de RLS (Row Level Security):
-   - Las políticas están incluidas en el script de migración
-   - Verificar que estén activas en Authentication > Policies
+1. Crear un nuevo proyecto en [Supabase](https://app.supabase.com)
+2. Ejecutar las migraciones SQL (ver sección Database Schema)
+3. Configurar Row Level Security policies
+4. Obtener las API keys del proyecto
 
 ### 3. Configurar Stripe
 
-1. Crear cuenta en [stripe.com](https://stripe.com)
-2. Ir a Developers > API Keys y copiar:
-   - Publishable key
-   - Secret key
-
-3. Configurar Webhook para eventos de pago:
-   - Ir a Developers > Webhooks
-   - Agregar endpoint: `https://tu-dominio.com/api/webhooks/stripe`
-   - Seleccionar eventos: `checkout.session.completed`, `payment_intent.succeeded`
-   - Copiar el Webhook Secret
-
-4. Habilitar Stripe Connect (para pagos a clubes):
-   - Ir a Connect > Settings
-   - Activar modo Express
+1. Crear cuenta en [Stripe](https://dashboard.stripe.com)
+2. Activar Stripe Connect para pagos a clubes
+3. Configurar webhook endpoint: `https://your-domain.com/api/webhooks/stripe`
+4. Eventos del webhook: `payment_intent.succeeded`, `payment_intent.payment_failed`
+5. Obtener las API keys y webhook secret
 
 ### 4. Variables de Entorno
 
-Copiar `.env.example` a `.env.local` y completar:
+Copiar `.env.example` a `.env.local` y completar con tus valores:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Editar `.env.local` con tus credenciales.
+Editar `.env.local` con tus credenciales reales.
 
-### 5. Iniciar servidor de desarrollo
+### 5. Ejecutar en Desarrollo
 
 ```bash
 npm run dev
 ```
 
-Abrir [http://localhost:3000](http://localhost:3000)
+La aplicación estará disponible en `http://localhost:3000`
 
-## 📁 Estructura del Proyecto
+## Database Schema
+
+Ejecutar estos comandos SQL en el SQL Editor de Supabase:
+
+```sql
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Clubs table
+CREATE TABLE clubs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  slug TEXT UNIQUE NOT NULL,
+  nombre TEXT NOT NULL,
+  logo_url TEXT,
+  color_primario TEXT DEFAULT '#000000',
+  color_secundario TEXT DEFAULT '#ffffff',
+  stripe_account_id TEXT,
+  comision_porcentaje DECIMAL(5,2) DEFAULT 15.00,
+  activo BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Club users table
+CREATE TABLE usuarios_club (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  club_id UUID REFERENCES clubs(id) ON DELETE CASCADE,
+  auth_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  rol TEXT CHECK (rol IN ('admin', 'editor', 'viewer')) DEFAULT 'editor',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(club_id, auth_user_id)
+);
+
+-- Products table
+CREATE TABLE productos (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  club_id UUID REFERENCES clubs(id) ON DELETE CASCADE,
+  nombre TEXT NOT NULL,
+  descripcion TEXT,
+  precio_base DECIMAL(10,2) NOT NULL,
+  costo_produccion DECIMAL(10,2) NOT NULL,
+  categoria TEXT,
+  imagenes JSONB DEFAULT '[]'::jsonb,
+  activo BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Product variants table
+CREATE TABLE variantes_producto (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  producto_id UUID REFERENCES productos(id) ON DELETE CASCADE,
+  talla TEXT,
+  color TEXT,
+  sku TEXT UNIQUE,
+  activo BOOLEAN DEFAULT true,
+  UNIQUE(producto_id, talla, color)
+);
+
+-- Orders table
+CREATE TABLE pedidos (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  club_id UUID REFERENCES clubs(id) ON DELETE CASCADE,
+  numero_pedido TEXT UNIQUE NOT NULL,
+  estado TEXT CHECK (estado IN ('pending', 'paid', 'production', 'shipped', 'delivered', 'cancelled')) DEFAULT 'pending',
+  cliente_email TEXT NOT NULL,
+  cliente_nombre TEXT NOT NULL,
+  direccion_envio JSONB NOT NULL,
+  subtotal DECIMAL(10,2) NOT NULL,
+  costo_envio DECIMAL(10,2) DEFAULT 0,
+  total DECIMAL(10,2) NOT NULL,
+  comision_plataforma DECIMAL(10,2) NOT NULL,
+  pago_club DECIMAL(10,2) NOT NULL,
+  stripe_payment_intent_id TEXT,
+  tracking_number TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  paid_at TIMESTAMPTZ,
+  shipped_at TIMESTAMPTZ
+);
+
+-- Order items table
+CREATE TABLE items_pedido (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  pedido_id UUID REFERENCES pedidos(id) ON DELETE CASCADE,
+  producto_id UUID REFERENCES productos(id),
+  variante_id UUID REFERENCES variantes_producto(id),
+  cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+  precio_unitario DECIMAL(10,2) NOT NULL,
+  subtotal DECIMAL(10,2) NOT NULL
+);
+
+-- Indexes for performance
+CREATE INDEX idx_clubs_slug ON clubs(slug);
+CREATE INDEX idx_productos_club ON productos(club_id);
+CREATE INDEX idx_pedidos_club ON pedidos(club_id);
+CREATE INDEX idx_pedidos_estado ON pedidos(estado);
+CREATE INDEX idx_pedidos_numero ON pedidos(numero_pedido);
+
+-- Row Level Security Policies
+
+-- Clubs: public read, authenticated write for own club
+ALTER TABLE clubs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Clubs are viewable by everyone" 
+  ON clubs FOR SELECT 
+  USING (activo = true);
+
+CREATE POLICY "Club users can update their club" 
+  ON clubs FOR UPDATE 
+  USING (
+    id IN (
+      SELECT club_id FROM usuarios_club 
+      WHERE auth_user_id = auth.uid() AND rol IN ('admin')
+    )
+  );
+
+-- Productos: public read if active, club users can manage
+ALTER TABLE productos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Active products are viewable by everyone" 
+  ON productos FOR SELECT 
+  USING (activo = true);
+
+CREATE POLICY "Club users can manage their products" 
+  ON productos FOR ALL 
+  USING (
+    club_id IN (
+      SELECT club_id FROM usuarios_club 
+      WHERE auth_user_id = auth.uid()
+    )
+  );
+
+-- Variantes: public read if active, club users can manage
+ALTER TABLE variantes_producto ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Active variants are viewable by everyone" 
+  ON variantes_producto FOR SELECT 
+  USING (
+    activo = true AND 
+    producto_id IN (SELECT id FROM productos WHERE activo = true)
+  );
+
+CREATE POLICY "Club users can manage their variants" 
+  ON variantes_producto FOR ALL 
+  USING (
+    producto_id IN (
+      SELECT p.id FROM productos p
+      INNER JOIN usuarios_club uc ON p.club_id = uc.club_id
+      WHERE uc.auth_user_id = auth.uid()
+    )
+  );
+
+-- Pedidos: club users can view their orders
+ALTER TABLE pedidos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Club users can view their orders" 
+  ON pedidos FOR SELECT 
+  USING (
+    club_id IN (
+      SELECT club_id FROM usuarios_club 
+      WHERE auth_user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Club users can update their orders" 
+  ON pedidos FOR UPDATE 
+  USING (
+    club_id IN (
+      SELECT club_id FROM usuarios_club 
+      WHERE auth_user_id = auth.uid()
+    )
+  );
+
+-- Items pedido: viewable by club users
+ALTER TABLE items_pedido ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Club users can view order items" 
+  ON items_pedido FOR SELECT 
+  USING (
+    pedido_id IN (
+      SELECT p.id FROM pedidos p
+      INNER JOIN usuarios_club uc ON p.club_id = uc.club_id
+      WHERE uc.auth_user_id = auth.uid()
+    )
+  );
+```
+
+## Estructura del Proyecto
 
 ```
-clubshop-platform/
+clubstore-platform/
 ├── app/
-│   ├── (tienda)/
-│   │   └── [slug]/              # Tienda pública del club
-│   ├── (dashboard)/
-│   │   └── dashboard/           # Panel de administración del club
-│   ├── api/                     # API Routes
-│   ├── layout.tsx               # Layout raíz
-│   └── globals.css
-├── components/
-│   ├── ui/                      # Componentes shadcn/ui
-│   ├── tienda/                  # Componentes de tienda
-│   └── dashboard/               # Componentes de dashboard
-├── lib/
-│   ├── supabase.ts              # Cliente Supabase
-│   ├── utils.ts                 # Utilidades
-│   └── services/                # Lógica de negocio
-├── hooks/                       # Custom React Hooks
-├── types/                       # TypeScript types
-└── public/                      # Assets estáticos
+│   ├── (tienda)/          # Rutas públicas de tienda
+│   ├── dashboard/         # Panel de administración
+│   ├── api/              # API Routes
+│   ├── globals.css       # Estilos globales
+│   └── layout.tsx        # Layout raíz
+├── components/           # Componentes React
+├── lib/                 # Utilidades y configuración
+├── services/            # Lógica de negocio
+├── hooks/              # Custom React hooks
+└── types/              # TypeScript types
 ```
 
-## 🗄️ Schema de Base de Datos
-
-### Tablas Principales
-
-- **clubs**: Información de clubes
-- **usuarios_club**: Relación usuarios-clubes
-- **productos**: Catálogo de productos
-- **variantes_producto**: Tallas/colores de productos
-- **pedidos**: Órdenes de compra
-- **items_pedido**: Líneas de pedido
-
-Ver el esquema completo en `/types/index.ts` y el SQL en `/supabase/migrations/`
-
-## 🔐 Seguridad
-
-### Row Level Security (RLS)
-
-Todas las tablas tienen RLS habilitado con políticas que:
-
-- Permiten lectura pública de productos activos
-- Restringen escritura solo a usuarios autenticados del club
-- Aíslan datos entre clubes
-- Protegen información sensible de pedidos
-
-### Variables de Entorno
-
-- **NUNCA** commitear `.env.local`
-- Usar `NEXT_PUBLIC_*` solo para valores que pueden ser públicos
-- Rotar keys regularmente
-- Usar diferentes keys para dev/staging/producción
-
-## 🚀 Deploy a Producción
+## Despliegue
 
 ### Vercel (Recomendado)
 
-1. Conectar repositorio en [vercel.com](https://vercel.com)
-2. Configurar variables de entorno
+1. Conectar repositorio en [Vercel](https://vercel.com)
+2. Configurar variables de entorno en Vercel Dashboard
 3. Deploy automático en cada push a main
 
-### Variables de Entorno en Vercel
+### Variables de Entorno en Producción
 
-Agregar todas las variables de `.env.example` en:
-- Settings > Environment Variables
-- Configurar para Production, Preview, Development
+Asegurar que todas las variables de `.env.example` estén configuradas en Vercel con valores de producción.
 
-### Actualizar Webhook de Stripe
+## Webhooks de Stripe
 
-Cambiar la URL del webhook a tu dominio de producción:
-```
-https://tu-dominio.vercel.app/api/webhooks/stripe
-```
+Configurar endpoint de webhook en Stripe Dashboard:
+- URL: `https://your-domain.com/api/webhooks/stripe`
+- Eventos: `payment_intent.succeeded`, `payment_intent.payment_failed`
 
-## 🧪 Testing
+## Soporte
 
-```bash
-# Type checking
-npm run type-check
+Para issues y preguntas, abrir un issue en GitHub.
 
-# Linting
-npm run lint
-```
+## Licencia
 
-## 📝 Flujo de Trabajo
-
-### Cliente (Socio del Club)
-
-1. Visitar `tudominio.com/nombre-club`
-2. Navegar catálogo de productos
-3. Agregar al carrito
-4. Checkout con Stripe
-5. Recibir confirmación por email
-6. Trackear pedido
-
-### Administrador del Club
-
-1. Login en `/dashboard`
-2. Crear productos con variantes
-3. Ver pedidos en tiempo real
-4. Actualizar estados de pedidos
-5. Ver estadísticas de ventas
-6. Recibir pagos vía Stripe Connect
-
-## 🆘 Troubleshooting
-
-### Error: "Supabase client not initialized"
-- Verificar que `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` estén configuradas
-
-### Error: "Stripe error"
-- Verificar que las keys de Stripe sean correctas
-- En desarrollo, usar keys de test (`sk_test_...`)
-
-### Imágenes no cargan
-- Verificar que el bucket `productos` exista
-- Verificar que sea público
-- Verificar configuración de CORS en Supabase Storage
-
-### RLS bloquea queries
-- Verificar que las políticas de RLS estén correctas
-- Usar `service_role_key` en server-side cuando sea necesario
-- Nunca usar `service_role_key` en client-side
-
-## 📚 Documentación Adicional
-
-- [Next.js Docs](https://nextjs.org/docs)
-- [Supabase Docs](https://supabase.com/docs)
-- [Stripe Docs](https://stripe.com/docs)
-- [shadcn/ui Docs](https://ui.shadcn.com)
-
-## 🤝 Contribuir
-
-1. Fork del repositorio
-2. Crear branch feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit cambios (`git commit -am 'Agregar nueva funcionalidad'`)
-4. Push al branch (`git push origin feature/nueva-funcionalidad`)
-5. Crear Pull Request
-
-## 📄 Licencia
-
-MIT License - ver LICENSE file
-
-## 👥 Soporte
-
-Para soporte, email a soporte@tudominio.com o crear un issue en GitHub.
+MIT
