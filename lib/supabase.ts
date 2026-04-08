@@ -1,72 +1,126 @@
-import { createClient } from '@supabase/supabase-js'
-import { createClientComponentClient, createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import type { Database } from '@/types'
+import { createClient } from "@supabase/supabase-js";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Cliente para uso en el navegador (componentes cliente)
-export const createBrowserClient = () => {
-  return createClientComponentClient<Database>()
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Missing Supabase environment variables");
 }
 
-// Cliente para uso en Server Components
-export const createServerClient = () => {
-  const cookieStore = cookies()
-  return createServerComponentClient<Database>({ cookies: () => cookieStore })
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export const supabaseAdmin = supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  : null;
+
+export function createBrowserClient() {
+  return createClientComponentClient();
 }
 
-// Cliente con permisos de servicio (solo para API routes y funciones server)
-export const createServiceClient = () => {
-  if (!supabaseServiceKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY no está configurada')
-  }
-  return createClient<Database>(supabaseUrl, supabaseServiceKey, {
+export function createServerClient() {
+  return createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
-  })
+      persistSession: false,
+    },
+  });
 }
 
-// Cliente básico para uso general (sin auth helpers)
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
-
-// Helpers para storage
-export const getPublicUrl = (bucket: string, path: string): string => {
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path)
-  return data.publicUrl
+export async function getSession() {
+  const client = createBrowserClient();
+  const {
+    data: { session },
+  } = await client.auth.getSession();
+  return session;
 }
 
-export const uploadImage = async (
-  bucket: string, 
-  path: string, 
+export async function getUser() {
+  const client = createBrowserClient();
+  const {
+    data: { user },
+  } = await client.auth.getUser();
+  return user;
+}
+
+export async function signIn(email: string, password: string) {
+  const client = createBrowserClient();
+  const { data, error } = await client.auth.signInWithPassword({
+    email,
+    password,
+  });
+  return { data, error };
+}
+
+export async function signUp(email: string, password: string) {
+  const client = createBrowserClient();
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
+  });
+  return { data, error };
+}
+
+export async function signOut() {
+  const client = createBrowserClient();
+  const { error } = await client.auth.signOut();
+  return { error };
+}
+
+export async function resetPassword(email: string) {
+  const client = createBrowserClient();
+  const { data, error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth/reset-password`,
+  });
+  return { data, error };
+}
+
+export async function updatePassword(newPassword: string) {
+  const client = createBrowserClient();
+  const { data, error } = await client.auth.updateUser({
+    password: newPassword,
+  });
+  return { data, error };
+}
+
+export function getStorageUrl(bucket: string, path: string): string {
+  return `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
+}
+
+export async function uploadFile(
+  bucket: string,
+  path: string,
   file: File
-): Promise<string> => {
-  const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    cacheControl: '3600',
-    upsert: false
-  })
-  
+): Promise<{ url: string | null; error: Error | null }> {
+  const client = createBrowserClient();
+
+  const { data, error } = await client.storage.from(bucket).upload(path, file, {
+    cacheControl: "3600",
+    upsert: true,
+  });
+
   if (error) {
-    throw new Error(`Error subiendo imagen: ${error.message}`)
+    return { url: null, error };
   }
-  
-  return getPublicUrl(bucket, path)
+
+  const url = getStorageUrl(bucket, data.path);
+  return { url, error: null };
 }
 
-export const deleteImage = async (bucket: string, paths: string[]): Promise<void> => {
-  const { error } = await supabase.storage.from(bucket).remove(paths)
-  
-  if (error) {
-    throw new Error(`Error eliminando imagen: ${error.message}`)
-  }
-}
-
-// Helper para extraer path de URL pública
-export const getPathFromPublicUrl = (url: string, bucket: string): string | null => {
-  const match = url.match(new RegExp(`/storage/v1/object/public/${bucket}/(.+)$`))
-  return match ? match[1] : null
+export async function deleteFile(
+  bucket: string,
+  path: string
+): Promise<{ error: Error | null }> {
+  const client = createBrowserClient();
+  const { error } = await client.storage.from(bucket).remove([path]);
+  return { error };
 }
