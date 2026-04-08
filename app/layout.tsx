@@ -1,14 +1,16 @@
+import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import QueryProvider from '@/components/providers/query-provider';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ClubStore - Tiendas para Clubes Deportivos',
-  description: 'Plataforma de tiendas online para clubes deportivos con fabricación bajo demanda',
+  title: 'Club Stores - Tiendas para Clubes Deportivos',
+  description: 'Plataforma de tiendas online para clubes deportivos con productos fabricados bajo demanda',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
@@ -19,10 +21,8 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
-        <QueryProvider>
-          {children}
-          <Toaster />
-        </QueryProvider>
+        {children}
+        <Toaster />
       </body>
     </html>
   );
