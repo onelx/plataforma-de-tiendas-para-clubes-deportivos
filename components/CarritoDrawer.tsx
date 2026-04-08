@@ -1,207 +1,211 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useCart } from '@/hooks/useCart';
+import { X, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatPrice } from '@/lib/utils';
+import { ItemCarrito } from '@/types';
 
-export function CarritoDrawer() {
-  const router = useRouter();
-  const { items, updateQuantity, removeItem, total, clearCart } = useCart();
-  const [isOpen, setIsOpen] = useState(false);
+interface CarritoDrawerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  items: ItemCarrito[];
+  onUpdateCantidad: (varianteId: string, cantidad: number) => void;
+  onRemoveItem: (varianteId: string) => void;
+  onClearCart: () => void;
+  clubSlug: string;
+}
 
-  useEffect(() => {
-    const handleOpenCart = () => {
-      setIsOpen(true);
-    };
+export function CarritoDrawer({
+  open,
+  onOpenChange,
+  items,
+  onUpdateCantidad,
+  onRemoveItem,
+  onClearCart,
+  clubSlug,
+}: CarritoDrawerProps) {
+  const subtotal = items.reduce((sum, item) => sum + item.precio_unitario * item.cantidad, 0);
+  const itemCount = items.reduce((sum, item) => sum + item.cantidad, 0);
 
-    window.addEventListener('openCart', handleOpenCart);
-    return () => window.removeEventListener('openCart', handleOpenCart);
-  }, []);
+  const handleIncrement = (varianteId: string, currentCantidad: number) => {
+    if (currentCantidad < 10) {
+      onUpdateCantidad(varianteId, currentCantidad + 1);
+    }
+  };
 
-  const totalFormateado = new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(total);
-
-  const handleCheckout = () => {
-    setIsOpen(false);
-    const clubSlug = window.location.pathname.split('/')[1];
-    router.push(`/${clubSlug}/checkout`);
+  const handleDecrement = (varianteId: string, currentCantidad: number) => {
+    if (currentCantidad > 1) {
+      onUpdateCantidad(varianteId, currentCantidad - 1);
+    } else {
+      onRemoveItem(varianteId);
+    }
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg flex flex-col">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5" />
-            Carrito de Compras
+          <SheetTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5" />
+              Carrito ({itemCount})
+            </span>
+            {items.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearCart}
+                className="text-destructive hover:text-destructive"
+              >
+                Vaciar
+              </Button>
+            )}
           </SheetTitle>
-          <SheetDescription>
-            {items.length === 0 
-              ? 'Tu carrito está vacío' 
-              : `${items.length} ${items.length === 1 ? 'producto' : 'productos'} en tu carrito`
-            }
-          </SheetDescription>
         </SheetHeader>
 
         {items.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <ShoppingBag className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500 mb-4">Tu carrito está vacío</p>
-              <Button onClick={() => setIsOpen(false)}>
-                Seguir comprando
-              </Button>
-            </div>
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+            <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Tu carrito está vacío</h3>
+            <p className="text-muted-foreground mb-4">
+              Agregá productos para comenzar tu compra
+            </p>
+            <Button onClick={() => onOpenChange(false)} asChild>
+              <Link href={`/${clubSlug}/productos`}>Ver productos</Link>
+            </Button>
           </div>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto py-4">
-              <div className="space-y-4">
-                {items.map((item) => {
-                  const precioFormateado = new Intl.NumberFormat('es-AR', {
-                    style: 'currency',
-                    currency: 'ARS',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(item.precio_unitario);
+            <ScrollArea className="flex-1 -mx-6 px-6">
+              <div className="space-y-4 py-4">
+                {items.map((item) => (
+                  <div key={item.variante.id} className="flex gap-4">
+                    {/* Imagen del producto */}
+                    <div className="relative w-20 h-20 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                      <Image
+                        src={item.producto.imagenes?.[0] || '/placeholder-product.png'}
+                        alt={item.producto.nombre}
+                        fill
+                        className="object-cover"
+                        sizes="80px"
+                      />
+                    </div>
 
-                  const subtotalFormateado = new Intl.NumberFormat('es-AR', {
-                    style: 'currency',
-                    currency: 'ARS',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(item.subtotal);
-
-                  return (
-                    <div key={`${item.producto_id}-${item.variante_id}`} className="flex gap-4">
-                      <div className="w-20 h-20 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                        <img
-                          src={item.producto.imagen}
-                          alt={item.producto.nombre}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-sm line-clamp-1">
-                          {item.producto.nombre}
-                        </h4>
-                        
-                        <div className="flex gap-2 mt-1 text-xs text-gray-600">
-                          {item.variante.talla && (
-                            <span>Talla: {item.variante.talla}</span>
-                          )}
-                          {item.variante.color && (
-                            <span>Color: {item.variante.color}</span>
-                          )}
+                    {/* Información del producto */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm line-clamp-2 mb-1">
+                        {item.producto.nombre}
+                      </h4>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                        <span className="capitalize">{item.variante.talla}</span>
+                        <span>•</span>
+                        <div className="flex items-center gap-1">
+                          <div
+                            className="w-3 h-3 rounded-full border"
+                            style={{ backgroundColor: item.variante.color.toLowerCase() }}
+                          />
+                          <span className="capitalize">{item.variante.color}</span>
                         </div>
-
-                        <p className="text-sm font-medium mt-1">
-                          {precioFormateado}
-                        </p>
-
-                        <div className="flex items-center gap-2 mt-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => updateQuantity(item.producto_id, item.variante_id, Math.max(1, item.cantidad - 1))}
-                            disabled={item.cantidad <= 1}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          
-                          <span className="w-8 text-center text-sm font-medium">
-                            {item.cantidad}
-                          </span>
-                          
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => updateQuantity(item.producto_id, item.variante_id, Math.min(99, item.cantidad + 1))}
-                            disabled={item.cantidad >= 99}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        {/* Selector de cantidad */}
+                        <div className="flex items-center gap-1 border rounded-md">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 ml-auto text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => removeItem(item.producto_id, item.variante_id)}
+                            className="h-7 w-7"
+                            onClick={() => handleDecrement(item.variante.id, item.cantidad)}
                           >
-                            <Trash2 className="h-3 w-3" />
+                            {item.cantidad === 1 ? (
+                              <Trash2 className="h-3 w-3" />
+                            ) : (
+                              <Minus className="h-3 w-3" />
+                            )}
+                          </Button>
+                          <span className="w-8 text-center text-sm font-medium">
+                            {item.cantidad}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => handleIncrement(item.variante.id, item.cantidad)}
+                            disabled={item.cantidad >= 10}
+                          >
+                            <Plus className="h-3 w-3" />
                           </Button>
                         </div>
-                      </div>
 
-                      <div className="text-right">
-                        <p className="font-semibold text-sm">
-                          {subtotalFormateado}
-                        </p>
+                        {/* Precio */}
+                        <div className="text-right">
+                          <p className="font-semibold">
+                            {formatPrice(item.precio_unitario * item.cantidad)}
+                          </p>
+                          {item.cantidad > 1 && (
+                            <p className="text-xs text-muted-foreground">
+                              {formatPrice(item.precio_unitario)} c/u
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  );
-                })}
+
+                    {/* Botón eliminar */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 flex-shrink-0"
+                      onClick={() => onRemoveItem(item.variante.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
-            </div>
+            </ScrollArea>
 
-            <div className="border-t pt-4 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold">Total</span>
-                <span className="text-2xl font-bold text-primary">
-                  {totalFormateado}
-                </span>
+            <Separator />
+
+            <SheetFooter className="flex-col gap-4">
+              {/* Resumen */}
+              <div className="space-y-2 w-full">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-medium">{formatPrice(subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Envío</span>
+                  <span className="font-medium">Calculado en checkout</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total</span>
+                  <span>{formatPrice(subtotal)}</span>
+                </div>
               </div>
 
-              <Separator />
-
-              <div className="space-y-2">
-                <Button 
-                  className="w-full" 
-                  size="lg"
-                  onClick={handleCheckout}
+              {/* Botones de acción */}
+              <div className="grid grid-cols-2 gap-2 w-full">
+                <Button
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  asChild
                 >
-                  Finalizar compra
+                  <Link href={`/${clubSlug}/productos`}>Seguir comprando</Link>
                 </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Seguir comprando
+                <Button asChild>
+                  <Link href={`/${clubSlug}/checkout`}>
+                    Finalizar compra
+                  </Link>
                 </Button>
-
-                {items.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    className="w-full text-red-500 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => {
-                      clearCart();
-                      setIsOpen(false);
-                    }}
-                  >
-                    Vaciar carrito
-                  </Button>
-                )}
               </div>
-            </div>
+            </SheetFooter>
           </>
         )}
       </SheetContent>
