@@ -38,15 +38,16 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
 # Supabase
 /supabase/.branches
 /supabase/.temp
 
-# Stripe CLI
-.stripe/
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
