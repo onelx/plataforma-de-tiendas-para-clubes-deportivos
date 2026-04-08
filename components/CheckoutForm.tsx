@@ -2,280 +2,326 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Loader2, CreditCard, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCart } from '@/hooks/useCart';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { formatPrice } from '@/lib/utils';
 
-interface CheckoutFormData {
-  email: string;
-  nombre: string;
-  apellido: string;
-  telefono: string;
-  direccion: string;
-  ciudad: string;
-  provincia: string;
-  codigo_postal: string;
-}
+const checkoutSchema = z.object({
+  email: z.string().email('Email inválido'),
+  nombre: z.string().min(2, 'Nombre debe tener al menos 2 caracteres'),
+  apellido: z.string().min(2, 'Apellido debe tener al menos 2 caracteres'),
+  telefono: z.string().min(8, 'Teléfono inválido'),
+  direccion: z.string().min(5, 'Dirección debe tener al menos 5 caracteres'),
+  ciudad: z.string().min(2, 'Ciudad inválida'),
+  provincia: z.string().min(2, 'Provincia inválida'),
+  codigo_postal: z.string().min(4, 'Código postal inválido'),
+  notas: z.string().optional(),
+});
+
+type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
 interface CheckoutFormProps {
-  clubId: string;
-  clubSlug: string;
-  clubColorPrimario?: string;
+  subtotal: number;
+  costoEnvio: number;
+  onSubmit: (data: CheckoutFormData) => Promise<void>;
 }
 
-export function CheckoutForm({ clubId, clubSlug, clubColorPrimario }: CheckoutFormProps) {
-  const [procesando, setProcesando] = useState(false);
-  const { items, getTotalPrice, clearCart } = useCart();
-  const { toast } = useToast();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<CheckoutFormData>();
+export function CheckoutForm({ subtotal, costoEnvio, onSubmit }: CheckoutFormProps) {
+  const [loading, setLoading] = useState(false);
 
-  const formatearPrecio = (precio: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-    }).format(precio);
-  };
+  const form = useForm<CheckoutFormData>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      email: '',
+      nombre: '',
+      apellido: '',
+      telefono: '',
+      direccion: '',
+      ciudad: '',
+      provincia: '',
+      codigo_postal: '',
+      notas: '',
+    },
+  });
 
-  const subtotal = getTotalPrice();
-  const costoEnvio = 1500;
-  const total = subtotal + costoEnvio;
-
-  const onSubmit = async (data: CheckoutFormData) => {
+  const handleSubmit = async (data: CheckoutFormData) => {
+    setLoading(true);
     try {
-      setProcesando(true);
-
-      const pedidoData = {
-        club_id: clubId,
-        cliente_email: data.email,
-        cliente_nombre: `${data.nombre} ${data.apellido}`,
-        direccion_envio: {
-          direccion: data.direccion,
-          ciudad: data.ciudad,
-          provincia: data.provincia,
-          codigo_postal: data.codigo_postal,
-          telefono: data.telefono,
-        },
-        items: items.map(item => ({
-          producto_id: item.producto_id,
-          variante_id: item.variante_id,
-          cantidad: item.cantidad,
-          precio_unitario: item.precio_unitario,
-        })),
-        subtotal,
-        costo_envio: costoEnvio,
-        total,
-      };
-
-      const response = await fetch('/api/checkout/create-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(pedidoData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al crear sesión de pago');
-      }
-
-      const { url } = await response.json();
-
-      clearCart();
-      window.location.href = url;
+      await onSubmit(data);
     } catch (error) {
       console.error('Error en checkout:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudo procesar el pago. Intenta nuevamente.',
-        variant: 'destructive',
-      });
     } finally {
-      setProcesando(false);
+      setLoading(false);
     }
   };
 
+  const total = subtotal + costoEnvio;
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Información de Contacto</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="email">Email *</Label>
-            <Input
-              id="email"
-              type="email"
-              {...register('email', {
-                required: 'El email es requerido',
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Email inválido',
-                },
-              })}
-              className={errors.email ? 'border-red-500' : ''}
-            />
-            {errors.email && (
-              <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+    <div className="grid gap-6 lg:grid-cols-3">
+      {/* Formulario de datos */}
+      <div className="lg:col-span-2 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5" />
+              Información de envío
+            </CardTitle>
+            <CardDescription>
+              Completá tus datos para recibir el pedido
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                {/* Email */}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="tu@email.com"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Nombre y Apellido */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="nombre"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Juan" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="apellido"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Apellido</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Pérez" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Teléfono */}
+                <FormField
+                  control={form.control}
+                  name="telefono"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Teléfono</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="tel"
+                          placeholder="+54 11 1234-5678"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Separator />
+
+                {/* Dirección */}
+                <FormField
+                  control={form.control}
+                  name="direccion"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dirección</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Calle Falsa 123, Piso 4, Depto B"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Ciudad y Provincia */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="ciudad"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ciudad</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Buenos Aires" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="provincia"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Provincia</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Buenos Aires" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Código Postal */}
+                <FormField
+                  control={form.control}
+                  name="codigo_postal"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Código Postal</FormLabel>
+                      <FormControl>
+                        <Input placeholder="1234" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Notas */}
+                <FormField
+                  control={form.control}
+                  name="notas"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notas (opcional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ej: Timbre roto, llamar al llegar"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
+        {/* Botón de pago (solo visible en mobile) */}
+        <div className="lg:hidden">
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            disabled={loading}
+            onClick={form.handleSubmit(handleSubmit)}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Procesando...
+              </>
+            ) : (
+              <>
+                <CreditCard className="mr-2 h-5 w-5" />
+                Pagar {formatPrice(total)}
+              </>
             )}
-          </div>
+          </Button>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="nombre">Nombre *</Label>
-              <Input
-                id="nombre"
-                {...register('nombre', { required: 'El nombre es requerido' })}
-                className={errors.nombre ? 'border-red-500' : ''}
-              />
-              {errors.nombre && (
-                <p className="text-red-500 text-sm mt-1">{errors.nombre.message}</p>
-              )}
+      {/* Resumen del pedido */}
+      <div className="lg:col-span-1">
+        <Card className="sticky top-4">
+          <CardHeader>
+            <CardTitle>Resumen del pedido</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-medium">{formatPrice(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Envío</span>
+                <span className="font-medium">{formatPrice(costoEnvio)}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between text-lg font-bold">
+                <span>Total</span>
+                <span>{formatPrice(total)}</span>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="apellido">Apellido *</Label>
-              <Input
-                id="apellido"
-                {...register('apellido', { required: 'El apellido es requerido' })}
-                className={errors.apellido ? 'border-red-500' : ''}
-              />
-              {errors.apellido && (
-                <p className="text-red-500 text-sm mt-1">{errors.apellido.message}</p>
-              )}
-            </div>
-          </div>
 
-          <div>
-            <Label htmlFor="telefono">Teléfono *</Label>
-            <Input
-              id="telefono"
-              type="tel"
-              {...register('telefono', { required: 'El teléfono es requerido' })}
-              className={errors.telefono ? 'border-red-500' : ''}
-            />
-            {errors.telefono && (
-              <p className="text-red-500 text-sm mt-1">{errors.telefono.message}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            <div className="space-y-2 text-xs text-muted-foreground">
+              <p className="flex items-start gap-2">
+                <span>•</span>
+                <span>El pago se procesa de forma segura con Stripe</span>
+              </p>
+              <p className="flex items-start gap-2">
+                <span>•</span>
+                <span>Recibirás un email de confirmación</span>
+              </p>
+              <p className="flex items-start gap-2">
+                <span>•</span>
+                <span>El envío puede demorar 5-7 días hábiles</span>
+              </p>
+            </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Dirección de Envío</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="direccion">Dirección *</Label>
-            <Input
-              id="direccion"
-              {...register('direccion', { required: 'La dirección es requerida' })}
-              className={errors.direccion ? 'border-red-500' : ''}
-              placeholder="Calle, número, piso, depto"
-            />
-            {errors.direccion && (
-              <p className="text-red-500 text-sm mt-1">{errors.direccion.message}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="ciudad">Ciudad *</Label>
-              <Input
-                id="ciudad"
-                {...register('ciudad', { required: 'La ciudad es requerida' })}
-                className={errors.ciudad ? 'border-red-500' : ''}
-              />
-              {errors.ciudad && (
-                <p className="text-red-500 text-sm mt-1">{errors.ciudad.message}</p>
-              )}
+            {/* Botón de pago (desktop) */}
+            <div className="hidden lg:block pt-2">
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={loading}
+                onClick={form.handleSubmit(handleSubmit)}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="mr-2 h-5 w-5" />
+                    Pagar {formatPrice(total)}
+                  </>
+                )}
+              </Button>
             </div>
-            <div>
-              <Label htmlFor="provincia">Provincia *</Label>
-              <Input
-                id="provincia"
-                {...register('provincia', { required: 'La provincia es requerida' })}
-                className={errors.provincia ? 'border-red-500' : ''}
-              />
-              {errors.provincia && (
-                <p className="text-red-500 text-sm mt-1">{errors.provincia.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="codigo_postal">Código Postal *</Label>
-            <Input
-              id="codigo_postal"
-              {...register('codigo_postal', { required: 'El código postal es requerido' })}
-              className={errors.codigo_postal ? 'border-red-500' : ''}
-            />
-            {errors.codigo_postal && (
-              <p className="text-red-500 text-sm mt-1">{errors.codigo_postal.message}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Resumen del Pedido</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {items.map(item => (
-            <div key={item.variante_id} className="flex justify-between text-sm">
-              <span>
-                {item.cantidad}x {item.nombre_producto}
-                {item.talla && ` - ${item.talla}`}
-                {item.color && ` - ${item.color}`}
-              </span>
-              <span>{formatearPrecio(item.precio_unitario * item.cantidad)}</span>
-            </div>
-          ))}
-          <div className="border-t pt-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Subtotal</span>
-              <span>{formatearPrecio(subtotal)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Envío</span>
-              <span>{formatearPrecio(costoEnvio)}</span>
-            </div>
-            <div className="flex justify-between font-bold text-lg border-t pt-2">
-              <span>Total</span>
-              <span style={{ color: clubColorPrimario }}>{formatearPrecio(total)}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Button
-        type="submit"
-        size="lg"
-        className="w-full"
-        disabled={procesando || items.length === 0}
-        style={{
-          backgroundColor: clubColorPrimario,
-          color: 'white',
-        }}
-      >
-        {procesando ? (
-          <>
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Procesando...
-          </>
-        ) : (
-          'Proceder al Pago'
-        )}
-      </Button>
-    </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
