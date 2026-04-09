@@ -1,8 +1,5 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { createClient } from '@/lib/supabase/client';
-
-const supabase = createClient();
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -181,6 +178,9 @@ export async function uploadImage(
   path: string
 ): Promise<string | null> {
   try {
+    const { createClient } = await import('@/lib/supabase/client');
+    const supabase = createClient();
+
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(path, file, {
@@ -204,7 +204,9 @@ export async function uploadImage(
   }
 }
 
-export function getImageUrl(bucket: string, path: string): string {
+export async function getImageUrl(bucket: string, path: string): Promise<string> {
+  const { createClient } = await import('@/lib/supabase/client');
+  const supabase = createClient();
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
 }
