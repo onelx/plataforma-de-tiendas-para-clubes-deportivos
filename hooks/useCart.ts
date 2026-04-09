@@ -5,7 +5,7 @@ import type { Producto, VarianteProducto, CartItem } from '@/types';
 
 interface UseCartReturn {
   items: CartItem[];
-  addItem: (producto: Producto, variante: VarianteProducto, cantidad: number) => void;
+  addItem: (producto: Producto, variante: VarianteProducto | null, cantidad: number) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, cantidad: number) => void;
   clearCart: () => void;
@@ -63,11 +63,11 @@ export function useCart(): UseCartReturn {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const addItem = useCallback((producto: Producto, variante: VarianteProducto, cantidad: number) => {
+  const addItem = useCallback((producto: Producto, variante: VarianteProducto | null, cantidad: number) => {
     setItems(currentItems => {
-      const itemId = `${producto.id}-${variante.id}`;
+      const itemId = `${producto.id}-${variante?.id ?? 'sin-variante'}`;
       const existingItemIndex = currentItems.findIndex(
-        item => item.producto.id === producto.id && item.variante?.id === variante.id
+        item => item.producto.id === producto.id && item.variante?.id === variante?.id
       );
 
       if (existingItemIndex > -1) {

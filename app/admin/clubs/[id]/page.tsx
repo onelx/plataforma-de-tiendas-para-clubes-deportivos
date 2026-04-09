@@ -73,12 +73,15 @@ export default function AdminClubDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
   const [form, setForm] = useState({
     nombre: '',
     color_primario: '#1d4ed8',
     color_secundario: '#ffffff',
     activo: true,
     comision_porcentaje: 15,
+    logo_url: '' as string,
   });
 
   const [newUser, setNewUser] = useState({
@@ -122,6 +125,7 @@ export default function AdminClubDetailPage() {
             color_secundario: data.color_secundario,
             activo: data.activo,
             comision_porcentaje: data.comision_porcentaje,
+            logo_url: data.logo_url || '',
           });
         }
 
@@ -278,6 +282,42 @@ export default function AdminClubDetailPage() {
     const { data, error } = await supabase.storage
       .from('productos')
       .upload(filename, blob, { contentType: 'image/jpeg', upsert: false });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('productos')
+      .getPublicUrl(data.path);
+
+    return publicUrl;
+  };
+
+  // Logo upload helper
+  const uploadLogo = async (file: File): Promise<string> => {
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    await new Promise<void>((resolve) => { img.onload = () => resolve(); img.src = objectUrl; });
+    URL.revokeObjectURL(objectUrl);
+
+    const MAX = 400;
+    let { width, height } = img;
+    if (width > MAX || height > MAX) {
+      if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+      else { width = Math.round(width * MAX / height); height = MAX; }
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+
+    const blob = await new Promise<Blob>((resolve) =>
+      canvas.toBlob((b) => resolve(b!), 'image/png', 0.95)
+    );
+
+    const filename = `logos/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+    const { data, error } = await supabase.storage
+      .from('productos')
+      .upload(filename, blob, { contentType: 'image/png', upsert: false });
 
     if (error) throw error;
 
@@ -504,6 +544,61 @@ export default function AdminClubDetailPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSave} className="space-y-5">
+              {/* Logo del Club */}
+              <div>
+                <Label>Logo del Club</Label>
+                <div className="mt-2 flex items-center gap-4">
+                  <div className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50">
+                    {form.logo_url ? (
+                      <img src={form.logo_url} alt="Logo" className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <ImageIcon className="w-8 h-8 text-gray-300" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="cursor-pointer">
+                      <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:border-blue-400 hover:bg-blue-50 transition-colors text-sm text-gray-600">
+                        {uploadingLogo ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" />Subiendo...</>
+                        ) : (
+                          <><ImageIcon className="w-4 h-4" />Subir logo</>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingLogo || savingClub}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingLogo(true);
+                          try {
+                            const url = await uploadLogo(file);
+                            setForm((f) => ({ ...f, logo_url: url }));
+                          } catch (err) {
+                            alert('Error al subir el logo');
+                            console.error(err);
+                          } finally {
+                            setUploadingLogo(false);
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                    </label>
+                    {form.logo_url && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, logo_url: '' }))}
+                        className="text-xs text-red-500 hover:text-red-700"
+                      >
+                        Eliminar logo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="nombre">Nombre</Label>
                 <Input

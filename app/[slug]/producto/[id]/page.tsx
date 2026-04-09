@@ -59,8 +59,11 @@ export default function ProductoPage({ params }: ProductoPageProps) {
 
   // Agregar al carrito
   const handleAddToCart = () => {
-    if (!producto || !selectedVariante || !club) return;
-    
+    if (!producto || !club) return;
+    // Si hay variantes, requiere selección; si no hay, selectedVariante puede ser null
+    const variantes = producto.variantes || [];
+    if (variantes.length > 0 && !selectedVariante) return;
+
     addItem(producto, selectedVariante, cantidad);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -229,7 +232,7 @@ export default function ProductoPage({ params }: ProductoPageProps) {
             {/* Botón de agregar al carrito */}
             <Button
               onClick={handleAddToCart}
-              disabled={!selectedVariante}
+              disabled={(producto.variantes?.length ?? 0) > 0 && !selectedVariante}
               size="lg"
               className="w-full"
             >

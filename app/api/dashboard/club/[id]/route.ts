@@ -16,12 +16,13 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { nombre, color_primario, color_secundario } = body;
+    const { nombre, color_primario, color_secundario, logo_url } = body;
 
     const updateData: Record<string, unknown> = {};
     if (nombre !== undefined) updateData.nombre = nombre;
     if (color_primario !== undefined) updateData.color_primario = color_primario;
     if (color_secundario !== undefined) updateData.color_secundario = color_secundario;
+    if (logo_url !== undefined) updateData.logo_url = logo_url;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 });

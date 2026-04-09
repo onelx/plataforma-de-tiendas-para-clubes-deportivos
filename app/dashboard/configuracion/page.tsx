@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Image as ImageIcon } from 'lucide-react';
 import type { Club } from '@/types';
 
 export default function ConfiguracionPage() {
@@ -19,11 +19,13 @@ export default function ConfiguracionPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const [form, setForm] = useState({
     nombre: '',
     color_primario: '#1d4ed8',
     color_secundario: '#64748b',
+    logo_url: '' as string,
   });
 
   const fetchClub = useCallback(async () => {
@@ -41,6 +43,7 @@ export default function ConfiguracionPage() {
         nombre: data.nombre || '',
         color_primario: data.color_primario || '#1d4ed8',
         color_secundario: data.color_secundario || '#64748b',
+        logo_url: data.logo_url || '',
       });
     }
     setLoading(false);

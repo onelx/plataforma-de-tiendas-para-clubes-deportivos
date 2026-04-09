@@ -39,7 +39,7 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { nombre, color_primario, color_secundario, activo, comision_porcentaje } = body;
+    const { nombre, color_primario, color_secundario, activo, comision_porcentaje, logo_url } = body;
 
     const updateData: Record<string, unknown> = {};
     if (nombre !== undefined) updateData.nombre = nombre;
@@ -47,6 +47,7 @@ export async function PATCH(
     if (color_secundario !== undefined) updateData.color_secundario = color_secundario;
     if (activo !== undefined) updateData.activo = activo;
     if (comision_porcentaje !== undefined) updateData.comision_porcentaje = comision_porcentaje;
+    if (logo_url !== undefined) updateData.logo_url = logo_url;
 
     const { data, error } = await supabase
       .from('clubs')
