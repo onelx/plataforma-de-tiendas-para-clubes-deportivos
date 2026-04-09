@@ -15,7 +15,7 @@ export default function CheckoutPage() {
   const params = useParams();
   const router = useRouter();
   const { items, total, clearCart } = useCart();
-  const { club, loading: clubLoading } = useClub(params.slug as string);
+  const { club, isLoading: clubLoading } = useClub(params.slug as string);
 
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
