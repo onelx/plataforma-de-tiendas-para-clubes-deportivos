@@ -16,7 +16,7 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { nombre, descripcion, precio_base, costo_produccion, categoria, activo } = body;
+    const { nombre, descripcion, precio_base, costo_produccion, categoria, activo, imagenes } = body;
 
     const updateData: Record<string, unknown> = {};
     if (nombre !== undefined) updateData.nombre = nombre;
@@ -25,6 +25,7 @@ export async function PATCH(
     if (costo_produccion !== undefined) updateData.costo_produccion = costo_produccion;
     if (categoria !== undefined) updateData.categoria = categoria;
     if (activo !== undefined) updateData.activo = activo;
+    if (imagenes !== undefined) updateData.imagenes = imagenes;
 
     const { data, error } = await supabase
       .from('productos')

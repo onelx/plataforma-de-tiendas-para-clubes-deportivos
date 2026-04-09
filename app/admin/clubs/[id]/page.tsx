@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ import {
   Trash2,
   X,
   Package,
+  Image as ImageIcon,
 } from 'lucide-react';
 import type { Club, UsuarioClub, Producto, VarianteProducto } from '@/types';
 
@@ -51,6 +53,7 @@ const emptyProductoForm = {
   precio_base: '',
   costo_produccion: '',
   categoria: '',
+  imagenes: [] as string[],
 };
 
 export default function AdminClubDetailPage() {
@@ -59,6 +62,7 @@ export default function AdminClubDetailPage() {
   const params = useParams();
   const clubId = params.id as string;
   const isSuperAdmin = user?.email === process.env.NEXT_PUBLIC_SUPERADMIN_EMAIL;
+  const supabase = createClientComponentClient();
 
   const [club, setClub] = useState<Club | null>(null);
   const [usuarios, setUsuarios] = useState<UsuarioClubWithEmail[]>([]);
@@ -91,6 +95,7 @@ export default function AdminClubDetailPage() {
   const [productoError, setProductoError] = useState<string | null>(null);
   const [productoForm, setProductoForm] = useState(emptyProductoForm);
   const [variantes, setVariantes] = useState<VarianteForm[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) router.push('/login');
@@ -247,6 +252,42 @@ export default function AdminClubDetailPage() {
     }
   };
 
+  // Image upload helper
+  const resizeAndUpload = async (file: File): Promise<string> => {
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    await new Promise<void>((resolve) => { img.onload = () => resolve(); img.src = objectUrl; });
+    URL.revokeObjectURL(objectUrl);
+
+    const MAX = 1200;
+    let { width, height } = img;
+    if (width > MAX || height > MAX) {
+      if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+      else { width = Math.round(width * MAX / height); height = MAX; }
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+
+    const blob = await new Promise<Blob>((resolve) =>
+      canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.85)
+    );
+
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+    const { data, error } = await supabase.storage
+      .from('productos')
+      .upload(filename, blob, { contentType: 'image/jpeg', upsert: false });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('productos')
+      .getPublicUrl(data.path);
+
+    return publicUrl;
+  };
+
   // Product handlers
   const openAddProductSheet = () => {
     setEditingProducto(null);
@@ -264,6 +305,7 @@ export default function AdminClubDetailPage() {
       precio_base: String(producto.precio_base),
       costo_produccion: String(producto.costo_produccion),
       categoria: producto.categoria || '',
+      imagenes: producto.imagenes || [],
     });
     setVariantes(
       (producto.variantes || []).map((v) => ({
@@ -286,6 +328,7 @@ export default function AdminClubDetailPage() {
       precio_base: parseFloat(productoForm.precio_base) || 0,
       costo_produccion: parseFloat(productoForm.costo_produccion) || 0,
       categoria: productoForm.categoria || undefined,
+      imagenes: productoForm.imagenes,
       variantes: variantes
         .filter((v) => v.talla || v.color)
         .map((v) => ({ talla: v.talla || undefined, color: v.color || undefined })),
@@ -886,6 +929,63 @@ export default function AdminClubDetailPage() {
                 placeholder="Camisetas, Accesorios..."
                 disabled={submittingProducto}
               />
+            </div>
+
+            <Separator />
+
+            {/* Imágenes */}
+            <div>
+              <Label>Imágenes del producto</Label>
+
+              {/* Preview of uploaded images */}
+              {productoForm.imagenes.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2 mb-3">
+                  {productoForm.imagenes.map((url, i) => (
+                    <div key={i} className="relative group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="" className="w-20 h-20 object-cover rounded border" />
+                      <button
+                        type="button"
+                        onClick={() => setProductoForm(f => ({ ...f, imagenes: f.imagenes.filter((_, j) => j !== i) }))}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload button */}
+              <label className="mt-2 flex items-center gap-2 cursor-pointer">
+                <div className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-md hover:border-blue-400 hover:bg-blue-50 transition-colors text-sm text-gray-600">
+                  {uploadingImage ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" />Subiendo...</>
+                  ) : (
+                    <><ImageIcon className="w-4 h-4" />Subir imagen</>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadingImage}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploadingImage(true);
+                    try {
+                      const url = await resizeAndUpload(file);
+                      setProductoForm(f => ({ ...f, imagenes: [...f.imagenes, url] }));
+                    } catch (err) {
+                      console.error('Upload error:', err);
+                      alert('Error al subir la imagen. Verificá que el bucket "productos" existe en Supabase Storage.');
+                    } finally {
+                      setUploadingImage(false);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+              </label>
+              <p className="text-xs text-gray-400 mt-1">Máx 1200px, se convierte a JPEG automáticamente</p>
             </div>
 
             <Separator />

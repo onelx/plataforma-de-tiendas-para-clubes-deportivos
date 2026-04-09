@@ -38,7 +38,7 @@ export function ProductoCard({
 
   return (
     <Card className="group overflow-hidden transition-shadow hover:shadow-lg">
-      <Link href={`/${clubSlug}/productos/${producto.id}`}>
+      <Link href={`/${clubSlug}/producto/${producto.id}`}>
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           <img
             src={primeraImagen}
@@ -57,7 +57,7 @@ export function ProductoCard({
       </Link>
 
       <CardContent className="p-4">
-        <Link href={`/${clubSlug}/productos/${producto.id}`}>
+        <Link href={`/${clubSlug}/producto/${producto.id}`}>
           <h3 className="mb-2 font-semibold text-gray-900 transition-colors hover:opacity-80">
             {producto.nombre}
           </h3>
@@ -120,7 +120,7 @@ export function ProductoCard({
       </CardContent>
 
       <CardFooter className="p-4 pt-0">
-        <Link href={`/${clubSlug}/productos/${producto.id}`} className="w-full">
+        <Link href={`/${clubSlug}/producto/${producto.id}`} className="w-full">
           <Button
             className="w-full"
             style={{ backgroundColor: clubPrimaryColor }}

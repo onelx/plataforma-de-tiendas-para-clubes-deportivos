@@ -40,7 +40,7 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { nombre, descripcion, precio_base, costo_produccion, categoria, variantes } = body;
+    const { nombre, descripcion, precio_base, costo_produccion, categoria, imagenes, variantes } = body;
 
     if (!nombre) {
       return NextResponse.json({ error: 'nombre es requerido' }, { status: 400 });
@@ -55,7 +55,7 @@ export async function POST(
         precio_base: precio_base || 0,
         costo_produccion: costo_produccion || 0,
         categoria: categoria || null,
-        imagenes: [],
+        imagenes: imagenes || [],
         activo: true,
       })
       .select()
