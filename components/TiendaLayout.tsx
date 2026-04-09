@@ -1,26 +1,22 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { ShoppingCart, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { Club } from "@/types";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useCart } from "@/hooks/useCart";
+import { CarritoDrawer } from "@/components/CarritoDrawer";
 
 interface TiendaLayoutProps {
   club: Club;
   children: React.ReactNode;
-  cartItemCount?: number;
-  onCartClick?: () => void;
 }
 
-export function TiendaLayout({
-  club,
-  children,
-  cartItemCount = 0,
-  onCartClick,
-}: TiendaLayoutProps) {
+export function TiendaLayout({ club, children }: TiendaLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const { itemCount } = useCart();
 
   const primaryColor = club.color_primario || "#1e40af";
   const secondaryColor = club.color_secundario || "#3b82f6";
@@ -83,16 +79,16 @@ export function TiendaLayout({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onCartClick}
+                onClick={() => setCartOpen(true)}
                 className="relative"
               >
                 <ShoppingCart className="h-5 w-5" />
-                {cartItemCount > 0 && (
+                {itemCount > 0 && (
                   <span
                     className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white"
                     style={{ backgroundColor: primaryColor }}
                   >
-                    {cartItemCount}
+                    {itemCount}
                   </span>
                 )}
               </Button>
@@ -228,6 +224,11 @@ export function TiendaLayout({
           </div>
         </div>
       </footer>
+      <CarritoDrawer
+        open={cartOpen}
+        onOpenChange={setCartOpen}
+        clubSlug={club.slug}
+      />
     </div>
   );
 }

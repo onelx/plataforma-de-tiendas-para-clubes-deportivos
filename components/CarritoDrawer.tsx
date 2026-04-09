@@ -74,9 +74,10 @@ export function CarritoDrawer({ open, onOpenChange, clubSlug }: CarritoDrawerPro
                     >
                       <div className="h-20 w-20 flex-shrink-0 rounded-md bg-gray-100 overflow-hidden">
                         <img
-                          src="/placeholder-product.jpg"
-                          alt="Producto"
+                          src={item.producto.imagenes?.[0] || '/placeholder-product.jpg'}
+                          alt={item.producto.nombre}
                           className="h-full w-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-product.jpg'; }}
                         />
                       </div>
 
