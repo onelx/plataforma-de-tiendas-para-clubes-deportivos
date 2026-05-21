@@ -177,14 +177,6 @@ export function TiendaLayout({ club, children }: TiendaLayoutProps) {
                     Productos
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    href={`/${club.slug}/rastrear`}
-                    className="hover:text-gray-900"
-                  >
-                    Rastrear Pedido
-                  </Link>
-                </li>
               </ul>
             </div>
 
@@ -194,17 +186,17 @@ export function TiendaLayout({ club, children }: TiendaLayoutProps) {
               </h3>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li>
-                  <Link href="/terminos" className="hover:text-gray-900">
+                  <Link href={`/${club.slug}/terminos`} className="hover:text-gray-900">
                     Términos y Condiciones
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacidad" className="hover:text-gray-900">
+                  <Link href={`/${club.slug}/privacidad`} className="hover:text-gray-900">
                     Política de Privacidad
                   </Link>
                 </li>
                 <li>
-                  <Link href="/devoluciones" className="hover:text-gray-900">
+                  <Link href={`/${club.slug}/devoluciones`} className="hover:text-gray-900">
                     Política de Devoluciones
                   </Link>
                 </li>
@@ -219,7 +211,7 @@ export function TiendaLayout({ club, children }: TiendaLayoutProps) {
             </p>
             <p className="mt-2">
               Plataforma desarrollada por{" "}
-              <span style={{ color: primaryColor }}>IdeaForge</span>
+              <span style={{ color: primaryColor }}>Clubes Deportivos</span>
             </p>
           </div>
         </div>
