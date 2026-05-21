@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -17,6 +18,7 @@ export default function CheckoutPage() {
   const { items, total, clearCart } = useCart();
   const { club, isLoading: clubLoading } = useClub(params.slug as string);
 
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -94,7 +96,11 @@ export default function CheckoutPage() {
       window.location.href = url;
     } catch (error) {
       console.error('Error en checkout:', error);
-      alert('Hubo un error al procesar tu pedido. Por favor intentá de nuevo.');
+      toast({
+        title: 'Error al procesar el pedido',
+        description: 'Hubo un error al procesar tu pedido. Por favor intentá de nuevo.',
+        variant: 'destructive',
+      });
       setLoading(false);
     }
   };
@@ -253,7 +259,7 @@ export default function CheckoutPage() {
                       <p className="font-medium">{item.producto.nombre}</p>
                       {item.variante && (
                         <p className="text-gray-500">
-                          {item.variante.color} / {item.variante.talla}
+                          {[item.variante.talla, item.variante.color].filter(Boolean).join(' / ')}
                         </p>
                       )}
                       <p className="text-gray-500">Cantidad: {item.cantidad}</p>

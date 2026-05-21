@@ -248,9 +248,9 @@ export default function ProductoPage({ params }: ProductoPageProps) {
 
             {/* Info adicional */}
             <div className="mt-8 pt-8 border-t space-y-4 text-sm text-gray-600">
-              <p>✓ Fabricado bajo demanda en 3-5 días hábiles</p>
-              <p>✓ Envío a toda España</p>
-              <p>✓ Devoluciones en 14 días</p>
+              <p>✓ Fabricado bajo demanda en 5-10 días hábiles</p>
+              <p>✓ Envíos a todo el país</p>
+              <p>✓ Defectos de fabricación cubiertos</p>
             </div>
           </div>
         </div>

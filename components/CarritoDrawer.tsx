@@ -88,7 +88,9 @@ export function CarritoDrawer({ open, onOpenChange, clubSlug }: CarritoDrawerPro
                               {item.producto.nombre}
                             </h4>
                             <p className="text-sm text-gray-600">
-                              {item.variante ? `${item.variante.talla ?? ''} / ${item.variante.color ?? ''}` : ''}
+                              {item.variante
+                                ? [item.variante.talla, item.variante.color].filter(Boolean).join(' / ')
+                                : ''}
                             </p>
                           </div>
                           <Button
